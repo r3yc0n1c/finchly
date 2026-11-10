@@ -1,4 +1,4 @@
-.PHONY: all setup check format lint typecheck test-unit test secret-scan openapi up down logs clean
+.PHONY: all setup check format lint typecheck test-unit test secret-scan openapi schema-export up down logs clean
 
 all: check
 
@@ -37,6 +37,9 @@ check: lint typecheck secret-scan test-unit
 
 openapi:
 	uv run python -m finchly_contracts.generator
+
+schema-export:
+	uv run python -m finchly_domain.schemas.exporter
 
 up:
 	docker compose up -d

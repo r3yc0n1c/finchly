@@ -484,6 +484,12 @@ requires-dist = [{ name = "finchly-domain", editable = "packages/domain" }]
 name = "finchly-domain"
 version = "0.1.0"
 source = { editable = "packages/domain" }
+dependencies = [
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "pydantic", specifier = ">=2.10.0" }]
 
 [[package]]
 name = "grimp"

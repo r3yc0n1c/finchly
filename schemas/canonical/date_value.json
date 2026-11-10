@@ -1,0 +1,35 @@
+{
+  "description": "Date representation retaining raw text and ambiguity status per ADR-010 \u00a74.",
+  "properties": {
+    "ambiguous": {
+      "default": false,
+      "description": "True if format is ambiguous (e.g. 04/05/2026 where DD/MM vs MM/DD is unresolved).",
+      "title": "Ambiguous",
+      "type": "boolean"
+    },
+    "raw": {
+      "description": "Raw date string from source document.",
+      "title": "Raw",
+      "type": "string"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Normalized ISO 8601 calendar date (YYYY-MM-DD), or None if unparseable.",
+      "title": "Value"
+    }
+  },
+  "required": [
+    "raw"
+  ],
+  "title": "DateValue",
+  "type": "object"
+}
