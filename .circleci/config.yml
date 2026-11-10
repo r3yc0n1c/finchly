@@ -1,0 +1,92 @@
+version: 2.1
+
+executors:
+  python-node-executor:
+    docker:
+      - image: cimg/python:3.12-node
+    resource_class: medium
+
+jobs:
+  lint-and-typecheck:
+    executor: python-node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm
+          command: |
+            sudo npm install -g pnpm@12.15.0
+      - run:
+          name: Install Python dependencies
+          command: |
+            python -m pip install --upgrade pip
+            pip install ruff mypy import-linter detect-secrets jsonschema pytest pytest-asyncio httpx fastapi uvicorn pydantic asyncpg nats-py hypothesis
+            pip install -e packages/domain -e packages/contracts -e apps/api
+      - run:
+          name: Install Web dependencies
+          command: |
+            pnpm --dir apps/web install --frozen-lockfile
+      - run:
+          name: Secret Scan (SEC-015)
+          command: |
+            detect-secrets scan --baseline .secrets.baseline
+      - run:
+          name: Documentation Integrity (FIN-003)
+          command: |
+            python scripts/lint_docs.py
+      - run:
+          name: Python Format Check
+          command: |
+            ruff format --check .
+      - run:
+          name: Python Lint
+          command: |
+            ruff check .
+      - run:
+          name: Python Typecheck (mypy)
+          command: |
+            mypy packages apps/api tests
+      - run:
+          name: Architecture Boundary Check (NFR-006)
+          command: |
+            lint-imports
+      - run:
+          name: Web Biome Check & Format (apps/web)
+          command: |
+            pnpm --dir apps/web check
+      - run:
+          name: Web Typecheck (apps/web)
+          command: |
+            pnpm --dir apps/web typecheck
+
+  test:
+    executor: python-node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm
+          command: |
+            sudo npm install -g pnpm@12.15.0
+      - run:
+          name: Install dependencies
+          command: |
+            python -m pip install --upgrade pip
+            pip install -e packages/domain -e packages/contracts -e apps/api
+            pip install pytest pytest-asyncio httpx fastapi uvicorn pydantic asyncpg nats-py hypothesis import-linter detect-secrets jsonschema
+            pnpm --dir apps/web install --frozen-lockfile
+      - run:
+          name: Run Python Unit & Contract Tests
+          command: |
+            pytest -v
+      - run:
+          name: Run Web Unit Tests
+          command: |
+            pnpm --dir apps/web test
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - lint-and-typecheck
+      - test:
+          requires:
+            - lint-and-typecheck
