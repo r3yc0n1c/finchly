@@ -115,6 +115,10 @@ def lint_adrs() -> list[str]:
 
 def main() -> int:
     """Run all document linter checks."""
+    if not DOCS_DIR.exists():
+        print(f"Docs directory {DOCS_DIR} not found (excluded from git); skipping doc lint.")
+        return 0
+
     all_errors: list[str] = []
 
     print("Checking docs/FEATURES.json...")
