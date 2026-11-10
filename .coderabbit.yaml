@@ -52,7 +52,7 @@ reviews:
         All network calls must have explicit timeouts. No secrets or personal data in logs.
     - path: "apps/web/**"
       instructions: >-
-        Next.js web application: Strict TypeScript enforced. Linting and formatting managed by Biome (not ESLint).
+        Next.js web application: Strict TypeScript enforced. Linting and formatting managed by Biome.
     - path: "scripts/**"
       instructions: >-
         Scripts must gracefully handle missing optional/ignored directories such as docs/ in clean CI checkouts.
