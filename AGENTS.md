@@ -13,7 +13,7 @@ Pipeline stages are separate and individually observable:
 Decisions: ADR-009 (tenancy/auth), ADR-010 (canonical schema), ADR-011 (phases). Read them before coding.
 
 ## 3. Technology choices
-Python 3.12+ with FastAPI, SQLAlchemy/Alembic, Pydantic, pytest, Hypothesis, Ruff, mypy/pyright; TypeScript strict with Next.js, ESLint, Prettier, Vitest, Playwright; PostgreSQL with forced RLS; NATS JetStream; MinIO or another S3-compatible store behind an adapter (licence review: ADR-016); Tesseract baseline OCR, PaddleOCR optional profile; llama.cpp behind an adapter (model per ADR-013); OpenTelemetry. **All free/open source; no paid services.** Licence status of each dependency must be recorded before release (ADR-016). Do not add a dependency without recording its licence in `docs/LICENSES.md`.
+Python 3.12+ with FastAPI, SQLAlchemy/Alembic, Pydantic, pytest, Hypothesis, Ruff, mypy/pyright; TypeScript strict with Next.js, Biome (replacing ESLint/Prettier), Vitest, Playwright; PostgreSQL with forced RLS; NATS JetStream; MinIO or another S3-compatible store behind an adapter (licence review: ADR-016); Tesseract baseline OCR, PaddleOCR optional profile; llama.cpp behind an adapter (model per ADR-013); OpenTelemetry. **All free/open source; no paid services.** Licence status of each dependency must be recorded before release (ADR-016). Do not add a dependency without recording its licence in `docs/LICENSES.md`.
 
 ## 4. Domain boundaries
 ```
