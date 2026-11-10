@@ -17,17 +17,18 @@ PROGRESS_MD = DOCS_DIR / "PROGRESS.md"
 ADR_DIR = DOCS_DIR / "adr"
 
 
-def lint_features_json() -> list[str]:
+def lint_features_json(path: Path | None = None) -> list[str]:
     """Validate structure and typing of FEATURES.json."""
+    target_path = path or FEATURES_JSON
     errors: list[str] = []
-    if not FEATURES_JSON.exists():
-        return [f"Missing {FEATURES_JSON}"]
+    if not target_path.exists():
+        return [f"Missing {target_path}"]
 
     try:
-        with open(FEATURES_JSON, encoding="utf-8") as f:
+        with open(target_path, encoding="utf-8") as f:
             data = json.load(f)
     except Exception as exc:
-        return [f"Invalid JSON in FEATURES.json: {exc}"]
+        return [f"Invalid JSON in {target_path.name}: {exc}"]
 
     if not isinstance(data, dict):
         return ["FEATURES.json must be a JSON object"]
@@ -71,13 +72,14 @@ def lint_features_json() -> list[str]:
     return errors
 
 
-def lint_progress_md() -> list[str]:
+def lint_progress_md(path: Path | None = None) -> list[str]:
     """Validate that docs/PROGRESS.md contains required sections."""
+    target_path = path or PROGRESS_MD
     errors: list[str] = []
-    if not PROGRESS_MD.exists():
-        return [f"Missing {PROGRESS_MD}"]
+    if not target_path.exists():
+        return [f"Missing {target_path}"]
 
-    content = PROGRESS_MD.read_text(encoding="utf-8")
+    content = target_path.read_text(encoding="utf-8")
     required_headings = [
         r"^# Finchly — Progress",
         r"^## Current position",
@@ -88,20 +90,21 @@ def lint_progress_md() -> list[str]:
 
     for pattern in required_headings:
         if not re.search(pattern, content, re.MULTILINE):
-            errors.append(f"PROGRESS.md missing required section matching: {pattern}")
+            errors.append(f"{target_path.name} missing required section matching: {pattern}")
 
     return errors
 
 
-def lint_adrs() -> list[str]:
+def lint_adrs(adr_dir: Path | None = None) -> list[str]:
     """Validate ADRs in docs/adr render with proper headers."""
+    target_dir = adr_dir or ADR_DIR
     errors: list[str] = []
-    if not ADR_DIR.exists():
-        return [f"Missing directory {ADR_DIR}"]
+    if not target_dir.exists():
+        return [f"Missing directory {target_dir}"]
 
-    adr_files = list(ADR_DIR.glob("*.md"))
+    adr_files = list(target_dir.glob("*.md"))
     if not adr_files:
-        return ["No ADR markdown files found in docs/adr"]
+        return [f"No ADR markdown files found in {target_dir.name}"]
 
     for adr_path in adr_files:
         text = adr_path.read_text(encoding="utf-8")
@@ -115,6 +118,10 @@ def lint_adrs() -> list[str]:
 
 def main() -> int:
     """Run all document linter checks."""
+    if not DOCS_DIR.exists():
+        print(f"Docs directory {DOCS_DIR} not found (excluded from git); skipping doc lint.")
+        return 0
+
     all_errors: list[str] = []
 
     print("Checking docs/FEATURES.json...")
