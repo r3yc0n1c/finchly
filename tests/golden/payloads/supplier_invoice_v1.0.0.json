@@ -1,0 +1,251 @@
+{
+  "document_id": "00000000-0000-0000-0000-000000000001",
+  "document_type": "supplier_invoice",
+  "evidence": [
+    {
+      "bbox": [
+        0.1,
+        0.1,
+        0.2,
+        0.5
+      ],
+      "block_ids": [
+        "block-header-01"
+      ],
+      "confidence_calibrated": null,
+      "confidence_raw": null,
+      "coordinate_space": "original_page_normalized",
+      "evidence_id": "e0000000-0000-0000-0000-000000000001",
+      "method": "ocr_llm",
+      "model_run_id": null,
+      "page": 1,
+      "source_engine": "tesseract",
+      "support_status": "supported",
+      "text_source": "ocr",
+      "text_span": "TAX INVOICE - Bharat Textiles Ltd"
+    }
+  ],
+  "payload": {
+    "currency": {
+      "evidence": [],
+      "normalizer_version": "v1.0",
+      "raw": "INR",
+      "status": "present",
+      "value": "INR"
+    },
+    "document_date": {
+      "evidence": [],
+      "normalizer_version": "v1.0",
+      "raw": "31/10/2026",
+      "status": "present",
+      "value": {
+        "ambiguous": false,
+        "raw": "31/10/2026",
+        "value": "2026-10-31"
+      }
+    },
+    "document_number": {
+      "evidence": [],
+      "normalizer_version": "v1.0",
+      "raw": "INV-2026-001",
+      "status": "present",
+      "value": "INV-2026-001"
+    },
+    "e_invoice_reference": null,
+    "issuer": {
+      "address": {
+        "evidence": [],
+        "normalizer_version": null,
+        "raw": "123 Industrial Area, Surat, Gujarat 395002",
+        "status": "present",
+        "value": "123 Industrial Area, Surat, Gujarat 395002"
+      },
+      "name": {
+        "evidence": [],
+        "normalizer_version": null,
+        "raw": "Bharat Textiles Ltd",
+        "status": "present",
+        "value": "Bharat Textiles Ltd"
+      },
+      "tax_id": {
+        "evidence": [],
+        "normalizer_version": "v1.0",
+        "raw": "24ABCDE1234F1Z5",
+        "status": "present",
+        "value": "24ABCDE1234F1Z5"
+      }
+    },
+    "line_items": [
+      {
+        "description": {
+          "evidence": [],
+          "normalizer_version": null,
+          "raw": "100% Cotton Carded Yarn 40s",
+          "status": "present",
+          "value": "100% Cotton Carded Yarn 40s"
+        },
+        "discount": null,
+        "evidence": [],
+        "hsn_sac": {
+          "evidence": [],
+          "normalizer_version": null,
+          "raw": "5205",
+          "status": "present",
+          "value": "5205"
+        },
+        "item_code": {
+          "evidence": [],
+          "normalizer_version": null,
+          "raw": "YRN-40-C",
+          "status": "present",
+          "value": "YRN-40-C"
+        },
+        "line_number": 1,
+        "line_total": {
+          "evidence": [],
+          "normalizer_version": "v1.0",
+          "raw": "1,05,000.00",
+          "status": "present",
+          "value": {
+            "amount": "105000.00",
+            "currency": "INR"
+          }
+        },
+        "quantity": {
+          "evidence": [],
+          "normalizer_version": "v1.0",
+          "raw": "500 KGS",
+          "status": "present",
+          "value": {
+            "secondary_unit": null,
+            "secondary_value": null,
+            "unit_canonical": "kilogram",
+            "unit_raw": "KGS",
+            "value": "500.00"
+          }
+        },
+        "tax_components": [
+          {
+            "amount": {
+              "amount": "2500.00",
+              "currency": "INR"
+            },
+            "rate": "2.50",
+            "tax_type": "CGST"
+          },
+          {
+            "amount": {
+              "amount": "2500.00",
+              "currency": "INR"
+            },
+            "rate": "2.50",
+            "tax_type": "SGST"
+          }
+        ],
+        "taxable_amount": {
+          "evidence": [],
+          "normalizer_version": "v1.0",
+          "raw": "1,00,000.00",
+          "status": "present",
+          "value": {
+            "amount": "100000.00",
+            "currency": "INR"
+          }
+        },
+        "unit_price": {
+          "evidence": [],
+          "normalizer_version": "v1.0",
+          "raw": "200.00",
+          "status": "present",
+          "value": {
+            "amount": "200.00",
+            "currency": "INR"
+          }
+        }
+      }
+    ],
+    "other_charges_total": null,
+    "place_of_supply": {
+      "evidence": [],
+      "normalizer_version": null,
+      "raw": "Maharashtra (27)",
+      "status": "present",
+      "value": "Maharashtra (27)"
+    },
+    "recipient": {
+      "address": {
+        "evidence": [],
+        "normalizer_version": null,
+        "raw": "Plot 45, Bhiwandi, Thane, Maharashtra 421302",
+        "status": "present",
+        "value": "Plot 45, Bhiwandi, Thane, Maharashtra 421302"
+      },
+      "name": {
+        "evidence": [],
+        "normalizer_version": null,
+        "raw": "Sunrise Weaving Mills Pvt Ltd",
+        "status": "present",
+        "value": "Sunrise Weaving Mills Pvt Ltd"
+      },
+      "tax_id": {
+        "evidence": [],
+        "normalizer_version": "v1.0",
+        "raw": "27AAACS1234F1Z1",
+        "status": "present",
+        "value": "27AAACS1234F1Z1"
+      }
+    },
+    "references": [
+      "PO-2026-889"
+    ],
+    "reverse_charge": {
+      "evidence": [],
+      "normalizer_version": null,
+      "raw": "NO",
+      "status": "present",
+      "value": false
+    },
+    "round_off": null,
+    "totals": {
+      "discount_total": null,
+      "grand_total": {
+        "evidence": [],
+        "normalizer_version": "v1.0",
+        "raw": "1,05,000.00",
+        "status": "present",
+        "value": {
+          "amount": "105000.00",
+          "currency": "INR"
+        }
+      },
+      "other_charges_total": null,
+      "round_off": null,
+      "subtotal": {
+        "evidence": [],
+        "normalizer_version": "v1.0",
+        "raw": "1,00,000.00",
+        "status": "present",
+        "value": {
+          "amount": "100000.00",
+          "currency": "INR"
+        }
+      },
+      "tax_total": {
+        "evidence": [],
+        "normalizer_version": "v1.0",
+        "raw": "5,000.00",
+        "status": "present",
+        "value": {
+          "amount": "5000.00",
+          "currency": "INR"
+        }
+      }
+    }
+  },
+  "schema_version": "1.0.0",
+  "tenant_id": "00000000-0000-0000-0000-000000000002",
+  "validation": {
+    "issues": [],
+    "status": "passed"
+  }
+}
