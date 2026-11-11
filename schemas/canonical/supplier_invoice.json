@@ -208,8 +208,7 @@
         },
         "status": {
           "$ref": "#/$defs/FieldStatus",
-          "default": "present",
-          "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+          "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
         },
         "value": {
           "anyOf": [
@@ -224,6 +223,9 @@
           "description": "Normalized typed value, or None if missing or unparseable."
         }
       },
+      "required": [
+        "status"
+      ],
       "title": "Field[DateValue]",
       "type": "object"
     },
@@ -265,8 +267,7 @@
         },
         "status": {
           "$ref": "#/$defs/FieldStatus",
-          "default": "present",
-          "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+          "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
         },
         "value": {
           "anyOf": [
@@ -281,6 +282,9 @@
           "description": "Normalized typed value, or None if missing or unparseable."
         }
       },
+      "required": [
+        "status"
+      ],
       "title": "Field[Money]",
       "type": "object"
     },
@@ -322,8 +326,7 @@
         },
         "status": {
           "$ref": "#/$defs/FieldStatus",
-          "default": "present",
-          "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+          "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
         },
         "value": {
           "anyOf": [
@@ -338,6 +341,9 @@
           "description": "Normalized typed value, or None if missing or unparseable."
         }
       },
+      "required": [
+        "status"
+      ],
       "title": "Field[Quantity]",
       "type": "object"
     },
@@ -379,8 +385,7 @@
         },
         "status": {
           "$ref": "#/$defs/FieldStatus",
-          "default": "present",
-          "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+          "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
         },
         "value": {
           "anyOf": [
@@ -396,6 +401,9 @@
           "title": "Value"
         }
       },
+      "required": [
+        "status"
+      ],
       "title": "Field[bool]",
       "type": "object"
     },
@@ -437,8 +445,7 @@
         },
         "status": {
           "$ref": "#/$defs/FieldStatus",
-          "default": "present",
-          "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+          "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
         },
         "value": {
           "anyOf": [
@@ -454,6 +461,9 @@
           "title": "Value"
         }
       },
+      "required": [
+        "status"
+      ],
       "title": "Field[str]",
       "type": "object"
     },
@@ -646,7 +656,7 @@
       "type": "object"
     },
     "Money": {
-      "description": "Financial amount with ISO 4217 currency.\n\nFloats are strictly rejected to guarantee decimal financial arithmetic (AGENTS.md \u00a76).",
+      "description": "Financial amount with optional ISO 4217 currency.\n\nFloats and booleans are strictly rejected to guarantee decimal financial arithmetic (AGENTS.md \u00a76).\nIf currency is not present on the document, it remains None rather than fabricating a default.",
       "properties": {
         "amount": {
           "description": "Decimal represented as a string to guarantee exact financial precision.",
@@ -654,12 +664,19 @@
           "type": "string"
         },
         "currency": {
-          "default": "INR",
-          "description": "ISO 4217 currency code (e.g. INR, USD, EUR).",
-          "maxLength": 3,
-          "minLength": 3,
-          "title": "Currency",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 3,
+              "minLength": 3,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "ISO 4217 currency code (e.g. INR, USD, EUR) if stated on document, or None if absent.",
+          "title": "Currency"
         }
       },
       "required": [
@@ -816,7 +833,7 @@
   "properties": {
     "currency": {
       "$ref": "#/$defs/Field_str_",
-      "description": "Default document currency code (ISO 4217)."
+      "description": "Stated document currency code (ISO 4217), or missing if unstated."
     },
     "document_date": {
       "$ref": "#/$defs/Field_DateValue_",
@@ -896,6 +913,7 @@
     "recipient",
     "document_number",
     "document_date",
+    "currency",
     "totals"
   ],
   "title": "SupplierInvoicePayload",

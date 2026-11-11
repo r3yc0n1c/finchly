@@ -27,8 +27,8 @@ class Field[T](BaseModel):
         description="Normalized typed value, or None if missing or unparseable.",
     )
     status: FieldStatus = PydanticField(
-        default=FieldStatus.PRESENT,
-        description="Lifecycle status: present, missing, ambiguous, derived, or unsupported.",
+        ...,
+        description="Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported.",
     )
     normalizer_version: str | None = PydanticField(
         default=None,
@@ -40,12 +40,14 @@ class Field[T](BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_missing_status(self) -> "Field[T]":
-        """Enforce AI-009: if status is missing, value must be None (never 0 or a fabricated default)."""
+    def validate_status_and_value(self) -> "Field[T]":
+        """Enforce AI-009 status and value consistency invariants."""
         if self.status == FieldStatus.MISSING and self.value is not None:
             raise ValueError(
                 f"Field with status 'missing' must have value=None, but observed value: {self.value}"
             )
+        if self.status in (FieldStatus.PRESENT, FieldStatus.DERIVED) and self.value is None:
+            raise ValueError(f"Field with status '{self.status.value}' requires a non-None value.")
         return self
 
     @classmethod

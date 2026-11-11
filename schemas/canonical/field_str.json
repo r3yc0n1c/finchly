@@ -192,8 +192,7 @@
     },
     "status": {
       "$ref": "#/$defs/FieldStatus",
-      "default": "present",
-      "description": "Lifecycle status: present, missing, ambiguous, derived, or unsupported."
+      "description": "Explicit lifecycle status: present, missing, ambiguous, derived, or unsupported."
     },
     "value": {
       "anyOf": [
@@ -209,6 +208,9 @@
       "title": "Value"
     }
   },
+  "required": [
+    "status"
+  ],
   "title": "Field[str]",
   "type": "object"
 }

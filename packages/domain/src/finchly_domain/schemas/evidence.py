@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class TextSource(StrEnum):
@@ -77,3 +77,26 @@ class Evidence(BaseModel):
         default=None,
         description="Nullable calibrated probability; remains null until ADR-014 criteria are met.",
     )
+
+    @field_validator("bbox")
+    @classmethod
+    def validate_bounding_box(cls, v: list[float]) -> list[float]:
+        """Validate bbox has 4 coordinates in [0.0, 1.0] with ymin <= ymax and xmin <= xmax."""
+        if len(v) != 4:
+            raise ValueError(
+                f"Bounding box must contain exactly 4 coordinates [ymin, xmin, ymax, xmax], got {len(v)}."
+            )
+
+        ymin, xmin, ymax, xmax = v
+        for name, coord in (("ymin", ymin), ("xmin", xmin), ("ymax", ymax), ("xmax", xmax)):
+            if not 0.0 <= coord <= 1.0:
+                raise ValueError(
+                    f"Coordinate {name}={coord} is out of normalized range [0.0, 1.0]."
+                )
+
+        if ymin > ymax:
+            raise ValueError(f"Invalid bounding box: ymin ({ymin}) cannot exceed ymax ({ymax}).")
+        if xmin > xmax:
+            raise ValueError(f"Invalid bounding box: xmin ({xmin}) cannot exceed xmax ({xmax}).")
+
+        return v

@@ -125,8 +125,8 @@ class SupplierInvoicePayload(BaseModel):
         ..., description="Stated invoice issuance date."
     )
     currency: Field[str] = PydanticField(
-        default_factory=lambda: Field[str].present("INR"),
-        description="Default document currency code (ISO 4217).",
+        ...,
+        description="Stated document currency code (ISO 4217), or missing if unstated.",
     )
     totals: InvoiceTotals = PydanticField(..., description="Aggregate document totals.")
     line_items: list[InvoiceLineItem] = PydanticField(

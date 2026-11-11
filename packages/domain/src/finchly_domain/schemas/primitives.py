@@ -1,29 +1,56 @@
 """Canonical primitive types conforming to ADR-010.
 
 Enforces:
-- Money as Decimal with ISO 4217 currency (never binary float).
+- Money as Decimal with optional ISO 4217 currency (never binary float).
 - Quantity as Decimal with raw and canonical unit registry tags.
 - DateValue as ISO 8601 date with raw preservation and ambiguity flag.
 """
 
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 from typing import Annotated, Any
 
 from pydantic import (
     BaseModel,
+    BeforeValidator,
     ConfigDict,
     PlainSerializer,
     WithJsonSchema,
-    field_validator,
 )
 from pydantic import (
     Field as PydanticField,
 )
 
+
+def _validate_decimal(v: Any) -> Decimal:
+    """Validate and convert decimal inputs while strictly rejecting floats and booleans.
+
+    Enforces AGENTS.md §6 financial precision rules across all monetary and numeric fields.
+    """
+    if isinstance(v, bool):
+        raise ValueError("Booleans are strictly forbidden as numeric Decimal values.")
+    if isinstance(v, float):
+        raise ValueError("Float is strictly forbidden for Decimal values; use Decimal or string.")
+    if isinstance(v, (str, int)):
+        try:
+            d = Decimal(str(v))
+        except (InvalidOperation, ValueError) as exc:
+            raise ValueError(f"Malformed decimal value '{v}': {exc}") from exc
+    elif isinstance(v, Decimal):
+        d = v
+    else:
+        raise ValueError(f"Unsupported type {type(v).__name__} for Decimal field.")
+
+    if not d.is_finite():
+        raise ValueError(f"Non-finite Decimal value '{d}' is strictly forbidden.")
+
+    return d
+
+
 DecimalStr = Annotated[
     Decimal,
+    BeforeValidator(_validate_decimal),
     PlainSerializer(str, return_type=str, when_used="json"),
     WithJsonSchema(
         {
@@ -56,29 +83,21 @@ class FieldStatus(StrEnum):
 
 
 class Money(BaseModel):
-    """Financial amount with ISO 4217 currency.
+    """Financial amount with optional ISO 4217 currency.
 
-    Floats are strictly rejected to guarantee decimal financial arithmetic (AGENTS.md §6).
+    Floats and booleans are strictly rejected to guarantee decimal financial arithmetic (AGENTS.md §6).
+    If currency is not present on the document, it remains None rather than fabricating a default.
     """
 
     model_config = ConfigDict(frozen=True)
 
     amount: DecimalStr
-    currency: str = PydanticField(
-        default="INR",
+    currency: str | None = PydanticField(
+        default=None,
         min_length=3,
         max_length=3,
-        description="ISO 4217 currency code (e.g. INR, USD, EUR).",
+        description="ISO 4217 currency code (e.g. INR, USD, EUR) if stated on document, or None if absent.",
     )
-
-    @field_validator("amount", mode="before")
-    @classmethod
-    def reject_float(cls, v: Any) -> Any:
-        if isinstance(v, float):
-            raise TypeError("Float is strictly forbidden for Money amounts; use Decimal or string.")
-        if isinstance(v, (str, int)):
-            return Decimal(str(v))
-        return v
 
 
 class Quantity(BaseModel):
@@ -96,17 +115,6 @@ class Quantity(BaseModel):
     unit_canonical: str = PydanticField(..., description="Canonical unit identifier from registry.")
     secondary_value: DecimalStr | None = None
     secondary_unit: str | None = None
-
-    @field_validator("value", "secondary_value", mode="before")
-    @classmethod
-    def reject_float(cls, v: Any) -> Any:
-        if isinstance(v, float):
-            raise TypeError(
-                "Float is strictly forbidden for Quantity values; use Decimal or string."
-            )
-        if isinstance(v, (str, int)):
-            return Decimal(str(v))
-        return v
 
 
 class DateValue(BaseModel):

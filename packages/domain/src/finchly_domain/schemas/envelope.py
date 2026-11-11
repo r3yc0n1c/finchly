@@ -1,9 +1,9 @@
 """Canonical Document Envelope conforming to ADR-010 §1, §8, §9 and FINCHLY_SPEC §6."""
 
 import hashlib
-import json
 from typing import Any, Literal
 
+import rfc8785
 from pydantic import BaseModel, ConfigDict, model_validator
 from pydantic import Field as PydanticField
 
@@ -76,7 +76,6 @@ TypedPayload = (
     | DeliveryChallanPayload
     | ElectricityBillPayload
     | UnknownDocumentPayload
-    | dict[str, Any]
 )
 
 
@@ -96,7 +95,7 @@ class CanonicalEnvelope(BaseModel):
     )
     payload: TypedPayload = PydanticField(
         ...,
-        description="Typed domain payload corresponding to document_type.",
+        description="Strictly-typed domain payload corresponding to document_type.",
     )
     evidence: list[Evidence] = PydanticField(
         default_factory=list,
@@ -125,20 +124,31 @@ class CanonicalEnvelope(BaseModel):
                     data["payload"] = payload_cls.model_validate(raw_payload)
         return data
 
-    def canonical_json_bytes(self) -> bytes:
-        """Compute RFC 8785 canonical bytes of the envelope payload.
+    @model_validator(mode="after")
+    def validate_payload_matches_document_type(self) -> "CanonicalEnvelope":
+        """Verify that payload model instance strictly matches document_type."""
+        expected_cls = DOCUMENT_TYPE_PAYLOAD_MAP.get(self.document_type)
+        if expected_cls and not isinstance(self.payload, expected_cls):
+            raise ValueError(
+                f"Payload type mismatch: document_type '{self.document_type.value}' "
+                f"requires payload of type {expected_cls.__name__}, but got {type(self.payload).__name__}."
+            )
+        return self
 
-        Per ADR-010 §8: SHA-256 over RFC 8785 (JSON Canonicalization Scheme) bytes.
+    def canonical_payload_json_bytes(self) -> bytes:
+        """Compute RFC 8785 canonical bytes of the canonical payload.
+
+        Per ADR-010 §8: payload hash = SHA-256 over RFC 8785 (JSON Canonicalization Scheme)
+        bytes of the canonical payload.
         """
-        payload_data = self.model_dump(mode="json")
-        # Format keys deterministically without extraneous whitespace
-        return json.dumps(
-            payload_data,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=False,
-        ).encode("utf-8")
+        payload_data = self.payload.model_dump(mode="json")
+        return rfc8785.dumps(payload_data)
+
+    def canonical_envelope_json_bytes(self) -> bytes:
+        """Compute RFC 8785 canonical bytes of the full envelope."""
+        envelope_data = self.model_dump(mode="json")
+        return rfc8785.dumps(envelope_data)
 
     def rfc8785_hash(self) -> str:
-        """Compute SHA-256 hex digest of the canonical RFC 8785 payload bytes."""
-        return hashlib.sha256(self.canonical_json_bytes()).hexdigest()
+        """Compute SHA-256 hex digest of the canonical RFC 8785 payload bytes per ADR-010 §8."""
+        return hashlib.sha256(self.canonical_payload_json_bytes()).hexdigest()
