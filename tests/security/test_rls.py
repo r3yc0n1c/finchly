@@ -16,13 +16,17 @@ DB_NAME = os.environ.get("DB_NAME", "finchly")
 @pytest.fixture
 async def pg_admin_conn() -> asyncpg.Connection:
     """Connection using standard administrative/migration user."""
-    conn = await asyncpg.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASS,
-        database=DB_NAME,
-    )
+    try:
+        conn = await asyncpg.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user=DB_USER,
+            password=DB_PASS,
+            database=DB_NAME,
+            timeout=3,
+        )
+    except Exception as exc:
+        pytest.skip(f"PostgreSQL not reachable: {exc}")
     yield conn
     await conn.close()
 
@@ -30,13 +34,17 @@ async def pg_admin_conn() -> asyncpg.Connection:
 @pytest.fixture
 async def pg_app_conn() -> asyncpg.Connection:
     """Connection using non-bypass application role finchly_app."""
-    conn = await asyncpg.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user="finchly_app",
-        password="finchly_app_dev",
-        database=DB_NAME,
-    )
+    try:
+        conn = await asyncpg.connect(
+            host=DB_HOST,
+            port=DB_PORT,
+            user="finchly_app",
+            password="finchly_app_dev",
+            database=DB_NAME,
+            timeout=3,
+        )
+    except Exception as exc:
+        pytest.skip(f"PostgreSQL app connection not reachable: {exc}")
     yield conn
     await conn.close()
 

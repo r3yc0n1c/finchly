@@ -58,7 +58,13 @@ jobs:
             pnpm --dir apps/web typecheck
 
   test:
-    executor: python-node-executor
+    docker:
+      - image: cimg/python:3.12-node
+      - image: cimg/postgres:16.4
+        environment:
+          POSTGRES_USER: finchly
+          POSTGRES_PASSWORD: finchly_dev
+          POSTGRES_DB: finchly
     steps:
       - checkout
       - run:
@@ -75,9 +81,23 @@ jobs:
           command: |
             pnpm --dir apps/web install --frozen-lockfile
       - run:
+          name: Wait for Postgres & Run Migrations
+          command: |
+            python3 -c '
+            import socket, time
+            for _ in range(30):
+                try:
+                    s = socket.create_connection(("localhost", 5432), timeout=1)
+                    s.close()
+                    break
+                except OSError:
+                    time.sleep(1)
+            '
+            DATABASE_URL=postgresql://finchly:finchly_dev@localhost:5432/finchly uv run alembic upgrade head
+      - run:
           name: Run Python Unit & Contract Tests
           command: |
-            uv run pytest -v
+            DATABASE_URL=postgresql://finchly:finchly_dev@localhost:5432/finchly uv run pytest -v
       - run:
           name: Run Web Unit Tests
           command: |
