@@ -1,0 +1,15 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "finchly-contracts"
+version = "0.1.0"
+description = "Finchly API and schema contracts"
+requires-python = ">=3.12"
+dependencies = [
+    "finchly-domain",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/finchly_contracts"]
