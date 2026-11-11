@@ -4,7 +4,7 @@
 Enforces:
 1. Every tenant-owned table must include a `tenant_id` column.
 2. Every tenant-owned table must enable and force row-level security (FORCE RLS).
-3. Every tenant-owned table must define a tenant isolation policy.
+3. Every tenant-owned table must define a tenant isolation policy referencing `tenant_id`.
 """
 
 import ast
@@ -24,6 +24,16 @@ SYSTEM_TABLES = {
 }
 
 
+def _extract_string_literals(node: ast.AST) -> set[str]:
+    """Extract set of string literals from a List, Tuple, or Set AST node."""
+    strings: set[str] = set()
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        for elt in node.elts:
+            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                strings.add(elt.value)
+    return strings
+
+
 def lint_migration_file(file_path: Path) -> list[str]:
     """Inspect an individual migration file for tenancy and RLS compliance."""
     errors: list[str] = []
@@ -34,13 +44,20 @@ def lint_migration_file(file_path: Path) -> list[str]:
     except SyntaxError as e:
         return [f"{file_path.name}: SyntaxError parsing Python AST: {e}"]
 
-    created_tables: dict[str, list[str]] = {}
+    # 1. Map all top-level variable assignments for resolving loop iterables
+    assigned_collections: dict[str, set[str]] = {}
+    for stmt in tree.body:
+        if isinstance(stmt, ast.Assign):
+            for target in stmt.targets:
+                if isinstance(target, ast.Name):
+                    assigned_collections[target.id] = _extract_string_literals(stmt.value)
 
+    # 2. Extract created tables and their column names
+    created_tables: dict[str, list[str]] = {}
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
 
-        # Detect op.create_table('table_name', ...)
         func = node.func
         is_create_table = (
             isinstance(func, ast.Attribute)
@@ -48,7 +65,6 @@ def lint_migration_file(file_path: Path) -> list[str]:
             and isinstance(func.value, ast.Name)
             and func.value.id == "op"
         )
-
         if not is_create_table or not node.args:
             continue
 
@@ -75,67 +91,81 @@ def lint_migration_file(file_path: Path) -> list[str]:
 
         created_tables[table_name] = columns
 
-    # Extract all string literals assigned in lists/tuples in the file (e.g. TENANT_TABLES)
-    grouped_tables: set[str] = set()
+    # 3. Detect loop-based RLS enforcement that covers specific collections
+    loop_covered_tables: set[str] = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Assign) and isinstance(node.value, (ast.List, ast.Tuple, ast.Set)):
-            for elt in node.value.elts:
-                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
-                    grouped_tables.add(elt.value)
+        if not isinstance(node, ast.For) or not isinstance(node.target, ast.Name):
+            continue
 
-    # Check for generic looped RLS patterns like `ALTER TABLE {table} ENABLE ROW LEVEL SECURITY`
-    generic_enable_rls = bool(
-        re.search(
-            r"ALTER\s+TABLE\s+\{\w+\}\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY", content, re.IGNORECASE
-        )
-    )
-    generic_force_rls = bool(
-        re.search(
-            r"ALTER\s+TABLE\s+\{\w+\}\s+FORCE\s+ROW\s+LEVEL\s+SECURITY", content, re.IGNORECASE
-        )
-    )
-    generic_policy = bool(
-        re.search(r"CREATE\s+POLICY\s+\w+\s+ON\s+\{\w+\}", content, re.IGNORECASE)
-    )
+        var_name = node.target.id
+        # Resolve target tables for this loop
+        loop_tables: set[str] = set()
+        if isinstance(node.iter, ast.Name) and node.iter.id in assigned_collections:
+            loop_tables = assigned_collections[node.iter.id]
+        elif isinstance(node.iter, (ast.List, ast.Tuple, ast.Set)):
+            loop_tables = _extract_string_literals(node.iter)
 
+        if not loop_tables:
+            continue
+
+        # Check loop body AST / raw code for generic patterns using var_name
+        loop_segment = ast.get_source_segment(content, node) or ""
+        v = re.escape(var_name)
+
+        has_loop_enable = bool(
+            re.search(rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY", loop_segment, re.IGNORECASE)
+        )
+        has_loop_force = bool(
+            re.search(rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+FORCE\s+ROW\s+LEVEL\s+SECURITY", loop_segment, re.IGNORECASE)
+        )
+        has_loop_policy = bool(
+            re.search(
+                rf"\bCREATE\s+POLICY\s+\w+\s+ON\s+\{{{v}\}}\s+[^;]*\bUSING\s*\([^;]*\btenant_id\b",
+                loop_segment,
+                re.IGNORECASE,
+            )
+        )
+
+        if has_loop_enable and has_loop_force and has_loop_policy:
+            loop_covered_tables.update(loop_tables)
+
+    # 4. Check each created table
     for table_name, cols in created_tables.items():
         if table_name in SYSTEM_TABLES:
             continue
 
-        # 1. tenant_id column check
+        # 4a. tenant_id column check
         if "tenant_id" not in cols:
             errors.append(
                 f"{file_path.name}: Tenant-owned table '{table_name}' is missing required 'tenant_id' column."
             )
 
-        # 2. ENABLE ROW LEVEL SECURITY check
-        enable_rls_regex = rf"ALTER\s+TABLE\s+{table_name}\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
-        has_enable_rls = bool(re.search(enable_rls_regex, content, re.IGNORECASE)) or (
-            generic_enable_rls and table_name in grouped_tables
-        )
+        # 4b. If covered by valid loop, table is verified
+        is_loop_covered = table_name in loop_covered_tables
+
+        # 4c. Check literal statements
+        esc = re.escape(table_name)
+        enable_rls_regex = rf"\bALTER\s+TABLE\s+{esc}\b\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
+        has_enable_rls = is_loop_covered or bool(re.search(enable_rls_regex, content, re.IGNORECASE))
         if not has_enable_rls:
             errors.append(
                 f"{file_path.name}: Table '{table_name}' missing 'ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY;'."
             )
 
-        # 3. FORCE ROW LEVEL SECURITY check
-        force_rls_regex = rf"ALTER\s+TABLE\s+{table_name}\s+FORCE\s+ROW\s+LEVEL\s+SECURITY"
-        has_force_rls = bool(re.search(force_rls_regex, content, re.IGNORECASE)) or (
-            generic_force_rls and table_name in grouped_tables
-        )
+        force_rls_regex = rf"\bALTER\s+TABLE\s+{esc}\b\s+FORCE\s+ROW\s+LEVEL\s+SECURITY"
+        has_force_rls = is_loop_covered or bool(re.search(force_rls_regex, content, re.IGNORECASE))
         if not has_force_rls:
             errors.append(
                 f"{file_path.name}: Table '{table_name}' missing 'ALTER TABLE {table_name} FORCE ROW LEVEL SECURITY;'."
             )
 
-        # 4. Policy check
-        policy_regex = rf"CREATE\s+POLICY\s+\w+\s+ON\s+{table_name}"
-        has_policy = bool(re.search(policy_regex, content, re.IGNORECASE)) or (
-            generic_policy and table_name in grouped_tables
+        policy_regex = (
+            rf"\bCREATE\s+POLICY\s+\w+\s+ON\s+{esc}\b\s+[^;]*\bUSING\s*\([^;]*\btenant_id\b"
         )
+        has_policy = is_loop_covered or bool(re.search(policy_regex, content, re.IGNORECASE))
         if not has_policy:
             errors.append(
-                f"{file_path.name}: Table '{table_name}' missing 'CREATE POLICY ... ON {table_name}' tenant isolation policy."
+                f"{file_path.name}: Table '{table_name}' missing 'CREATE POLICY ... ON {table_name} ... USING (...tenant_id...)' tenant isolation policy."
             )
 
     return errors
@@ -144,13 +174,13 @@ def lint_migration_file(file_path: Path) -> list[str]:
 def main() -> int:
     """Run lint checks across all migration files in migrations/versions."""
     if not MIGRATIONS_DIR.exists():
-        print(f"Migrations directory not found at {MIGRATIONS_DIR}")
-        return 0
+        print(f"[ERROR] Migrations directory not found at {MIGRATIONS_DIR}")
+        return 1
 
     migration_files = sorted(MIGRATIONS_DIR.glob("*.py"))
     if not migration_files:
-        print("No migration files found.")
-        return 0
+        print("[ERROR] No migration files found in migrations directory.")
+        return 1
 
     all_errors: list[str] = []
     print(

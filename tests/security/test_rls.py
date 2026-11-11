@@ -25,15 +25,19 @@ async def pg_admin_conn() -> asyncpg.Connection:
             database=DB_NAME,
             timeout=3,
         )
-    except Exception as exc:
+    except (OSError, asyncpg.PostgresError) as exc:
+        if os.environ.get("CI"):
+            raise
         pytest.skip(f"PostgreSQL not reachable: {exc}")
     yield conn
     await conn.close()
 
 
 @pytest.fixture
-async def pg_app_conn() -> asyncpg.Connection:
+async def pg_app_conn(pg_admin_conn: asyncpg.Connection) -> asyncpg.Connection:
     """Connection using non-bypass application role finchly_app."""
+    # Test suite provisions credentials for test execution
+    await pg_admin_conn.execute("ALTER ROLE finchly_app WITH LOGIN PASSWORD 'finchly_app_dev';")
     try:
         conn = await asyncpg.connect(
             host=DB_HOST,
@@ -43,7 +47,9 @@ async def pg_app_conn() -> asyncpg.Connection:
             database=DB_NAME,
             timeout=3,
         )
-    except Exception as exc:
+    except (OSError, asyncpg.PostgresError) as exc:
+        if os.environ.get("CI"):
+            raise
         pytest.skip(f"PostgreSQL app connection not reachable: {exc}")
     yield conn
     await conn.close()

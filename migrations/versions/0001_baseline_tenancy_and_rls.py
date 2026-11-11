@@ -171,27 +171,30 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
-        sa.ForeignKeyConstraint(["tenant_id"], ["tenants.id"], ondelete="CASCADE"),
-        sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(
+            ["tenant_id", "user_id"],
+            ["tenant_members.tenant_id", "tenant_members.user_id"],
+            ondelete="CASCADE",
+        ),
     )
     op.create_index("ix_sessions_tenant_id", "sessions", ["tenant_id"])
 
-    # 3. Non-Bypass Application Role
+    # 3. Non-Bypass Application Role (NOLOGIN, no embedded credentials)
     op.execute(
         """
         DO $$
         BEGIN
             IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'finchly_app') THEN
-                CREATE ROLE finchly_app WITH LOGIN PASSWORD 'finchly_app_dev' NOBYPASSRLS;
+                CREATE ROLE finchly_app WITH NOLOGIN NOBYPASSRLS;
             END IF;
         END
         $$;
         """
     )
     op.execute("GRANT USAGE ON SCHEMA public TO finchly_app;")
-    op.execute("GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO finchly_app;")
+    op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO finchly_app;")
     op.execute(
-        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO finchly_app;"
+        "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO finchly_app;"
     )
 
     # 4. Enable and Force RLS with Tenant Isolation Policy on all Tenant-Owned Tables
