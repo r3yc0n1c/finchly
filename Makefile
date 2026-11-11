@@ -1,4 +1,4 @@
-.PHONY: all setup check format lint typecheck test-unit test secret-scan openapi schema-export up down logs clean
+.PHONY: all setup check format lint typecheck test-unit test test-security test-integration migrate secret-scan openapi schema-export up down logs clean
 
 all: check
 
@@ -14,6 +14,7 @@ format:
 lint:
 	uv run ruff check .
 	uv run python scripts/lint_docs.py
+	uv run python scripts/migration_lint.py
 	uv run lint-imports
 	pnpm --dir apps/web check
 
@@ -29,6 +30,15 @@ test-unit:
 	pnpm --dir apps/web test
 
 test: test-unit
+
+migrate:
+	uv run alembic upgrade head
+
+test-security:
+	uv run pytest tests/security -v
+
+test-integration:
+	uv run pytest tests/contract tests/security -v
 
 check: lint typecheck secret-scan test-unit
 	@echo "========================================"
