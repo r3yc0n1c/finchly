@@ -1,0 +1,69 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+tone_instructions: >-
+  You are a senior staff engineer and strict code reviewer for Finchly.
+  Be concise, direct, and actionable. Do not write poems, humor, or generic fluff.
+  Enforce the architectural rules and engineering standards from AGENTS.md strictly.
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  sequence_diagrams: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - "main"
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.venv/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.mypy_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!docs/**"
+
+  path_instructions:
+    - path: "packages/domain/**"
+      instructions: >-
+        Strict domain boundary (AGENTS.md §4): This package must NEVER import web frameworks
+        (FastAPI, Starlette), ORMs (SQLAlchemy, SQLModel), message brokers (NATS), OCR engines,
+        LLM bindings, or ERP SDKs. Ensure all domain logic is pure. Money must strictly be
+        Decimal, never float.
+    - path: "packages/validation/**"
+      instructions: >-
+        Validation rules must be pure, versioned, deterministic functions that return structured
+        issues. Never claim legal compliance or GST registration validity.
+    - path: "packages/normalization/**"
+      instructions: >-
+        Normalizers must be pure, versioned, deterministic parsers for dates, amounts, and identifiers.
+    - path: "packages/connectors/**"
+      instructions: >-
+        ERP connectors must declare capabilities strictly backed by contract tests. Never invent ERP
+        API behavior. Extraction logic must never be imported into connectors.
+    - path: "apps/api/**"
+      instructions: >-
+        FastAPI control plane: Tenant context must come from authenticated context, never the request body.
+        All network calls must have explicit timeouts. No secrets or personal data in logs.
+    - path: "apps/web/**"
+      instructions: >-
+        Next.js web application: Strict TypeScript enforced. Linting and formatting managed by Biome.
+    - path: "scripts/**"
+      instructions: >-
+        Scripts must gracefully handle missing optional/ignored directories such as docs/ in clean CI checkouts.
+
+  tools:
+    ruff:
+      enabled: true
+    biome:
+      enabled: true
+    yamllint:
+      enabled: true
+
+chat:
+  auto_reply: true

@@ -1,0 +1,93 @@
+version: 2.1
+
+executors:
+  python-node-executor:
+    docker:
+      - image: cimg/python:3.12-node
+    resource_class: medium
+
+jobs:
+  lint-and-typecheck:
+    executor: python-node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm and uv
+          command: |
+            sudo npm install -g pnpm@12.15.0
+            pip install uv
+      - run:
+          name: Install Python dependencies
+          command: |
+            uv sync
+      - run:
+          name: Install Web dependencies
+          command: |
+            pnpm --dir apps/web install --frozen-lockfile
+      - run:
+          name: Secret Scan (SEC-015)
+          command: |
+            uv run detect-secrets scan --baseline .secrets.baseline
+      - run:
+          name: Documentation Integrity (FIN-003)
+          command: |
+            uv run python scripts/lint_docs.py
+      - run:
+          name: Python Format Check
+          command: |
+            uv run ruff format --check .
+      - run:
+          name: Python Lint
+          command: |
+            uv run ruff check .
+      - run:
+          name: Python Typecheck (mypy)
+          command: |
+            uv run mypy packages apps/api tests
+      - run:
+          name: Architecture Boundary Check (NFR-006)
+          command: |
+            uv run lint-imports
+      - run:
+          name: Web Biome Check & Format (apps/web)
+          command: |
+            pnpm --dir apps/web check
+      - run:
+          name: Web Typecheck (apps/web)
+          command: |
+            pnpm --dir apps/web typecheck
+
+  test:
+    executor: python-node-executor
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm and uv
+          command: |
+            sudo npm install -g pnpm@12.15.0
+            pip install uv
+      - run:
+          name: Install Python dependencies
+          command: |
+            uv sync
+      - run:
+          name: Install Web dependencies
+          command: |
+            pnpm --dir apps/web install --frozen-lockfile
+      - run:
+          name: Run Python Unit & Contract Tests
+          command: |
+            uv run pytest -v
+      - run:
+          name: Run Web Unit Tests
+          command: |
+            pnpm --dir apps/web test
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - lint-and-typecheck
+      - test:
+          requires:
+            - lint-and-typecheck

@@ -1,0 +1,21 @@
+[importlinter]
+root_packages =
+    finchly_domain
+    finchly_contracts
+    finchly_api
+include_external_packages = True
+
+[importlinter:contract:domain-isolation]
+name = Domain package must not import web frameworks, ORMs, queues, or SDKs
+type = forbidden
+source_modules =
+    finchly_domain
+forbidden_modules =
+    finchly_api
+    fastapi
+    starlette
+    sqlalchemy
+    alembic
+    nats
+    minio
+    boto3
