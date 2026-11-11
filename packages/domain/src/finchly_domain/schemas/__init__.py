@@ -19,6 +19,14 @@ from finchly_domain.schemas.evidence import (
     TextSource,
 )
 from finchly_domain.schemas.field import Field
+from finchly_domain.schemas.model_output import (
+    ModelLineItem,
+    ModelOutput,
+    ModelParty,
+    ModelSupplierInvoice,
+    ModelTaxComponent,
+    ModelTotals,
+)
 from finchly_domain.schemas.primitives import (
     DateValue,
     DecimalStr,
@@ -49,6 +57,12 @@ __all__ = [
     "FieldStatus",
     "InvoiceLineItem",
     "InvoiceTotals",
+    "ModelLineItem",
+    "ModelOutput",
+    "ModelParty",
+    "ModelSupplierInvoice",
+    "ModelTaxComponent",
+    "ModelTotals",
     "Money",
     "Party",
     "PurchaseOrderPayload",

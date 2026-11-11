@@ -10,6 +10,7 @@ from finchly_domain.schemas.canonical import SupplierInvoicePayload
 from finchly_domain.schemas.envelope import CanonicalEnvelope
 from finchly_domain.schemas.evidence import Evidence
 from finchly_domain.schemas.field import Field
+from finchly_domain.schemas.model_output import ModelOutput
 from finchly_domain.schemas.primitives import DateValue, Money, Quantity
 
 
@@ -18,6 +19,8 @@ def export_all_schemas(target_dir: Path | None = None) -> list[Path]:
     base_dir = target_dir or Path(__file__).resolve().parents[5] / "schemas"
     canonical_dir = base_dir / "canonical"
     canonical_dir.mkdir(parents=True, exist_ok=True)
+    model_output_dir = base_dir / "model_output"
+    model_output_dir.mkdir(parents=True, exist_ok=True)
 
     schemas_to_export = {
         canonical_dir / "envelope.json": CanonicalEnvelope.model_json_schema(),
@@ -27,6 +30,7 @@ def export_all_schemas(target_dir: Path | None = None) -> list[Path]:
         canonical_dir / "date_value.json": DateValue.model_json_schema(),
         canonical_dir / "evidence.json": Evidence.model_json_schema(),
         canonical_dir / "field_str.json": Field[str].model_json_schema(),
+        model_output_dir / "model_output.json": ModelOutput.model_json_schema(),
     }
 
     written: list[Path] = []
