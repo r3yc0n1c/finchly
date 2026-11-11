@@ -1,0 +1,502 @@
+{
+  "$defs": {
+    "ModelLineItem": {
+      "additionalProperties": false,
+      "description": "Untrusted raw invoice line item.",
+      "properties": {
+        "cited_block_ids": {
+          "description": "Source block IDs citing this line item.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cited Block Ids",
+          "type": "array"
+        },
+        "description": {
+          "description": "Raw item description text.",
+          "title": "Description",
+          "type": "string"
+        },
+        "discount": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw line discount string.",
+          "title": "Discount"
+        },
+        "hsn_sac": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw HSN or SAC code string.",
+          "title": "Hsn Sac"
+        },
+        "item_code": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw product code or SKU string.",
+          "title": "Item Code"
+        },
+        "line_number": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw line number string if stated.",
+          "title": "Line Number"
+        },
+        "line_total": {
+          "description": "Raw line total amount string.",
+          "title": "Line Total",
+          "type": "string"
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw quantity string (e.g. '100', '1,000.5').",
+          "title": "Quantity"
+        },
+        "tax_components": {
+          "description": "Raw tax components for this line.",
+          "items": {
+            "$ref": "#/$defs/ModelTaxComponent"
+          },
+          "title": "Tax Components",
+          "type": "array"
+        },
+        "taxable_amount": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw taxable value string.",
+          "title": "Taxable Amount"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw unit string (e.g. 'KGS', 'MTR', 'PCS').",
+          "title": "Unit"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw rate/unit price string.",
+          "title": "Unit Price"
+        }
+      },
+      "required": [
+        "description",
+        "line_total"
+      ],
+      "title": "ModelLineItem",
+      "type": "object"
+    },
+    "ModelParty": {
+      "additionalProperties": false,
+      "description": "Untrusted raw extraction for issuer or recipient party.",
+      "properties": {
+        "address": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw address text if extracted.",
+          "title": "Address"
+        },
+        "cited_block_ids": {
+          "description": "Source block IDs citing this party extraction.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cited Block Ids",
+          "type": "array"
+        },
+        "name": {
+          "description": "Raw party name extracted from document.",
+          "title": "Name",
+          "type": "string"
+        },
+        "tax_id": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw tax identifier string (GSTIN, PAN, etc.) if extracted.",
+          "title": "Tax Id"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "ModelParty",
+      "type": "object"
+    },
+    "ModelSupplierInvoice": {
+      "additionalProperties": false,
+      "description": "Untrusted raw extraction for a supplier invoice.",
+      "properties": {
+        "cited_block_ids": {
+          "description": "Document-level cited source block IDs.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cited Block Ids",
+          "type": "array"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw currency symbol or code if explicitly present.",
+          "title": "Currency"
+        },
+        "document_date": {
+          "description": "Raw invoice date string.",
+          "title": "Document Date",
+          "type": "string"
+        },
+        "document_number": {
+          "description": "Raw invoice number string.",
+          "title": "Document Number",
+          "type": "string"
+        },
+        "e_invoice_reference": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw IRN or e-invoice acknowledgment string.",
+          "title": "E Invoice Reference"
+        },
+        "issuer": {
+          "$ref": "#/$defs/ModelParty",
+          "description": "Raw seller party extraction."
+        },
+        "line_items": {
+          "description": "Collection of raw extracted line items.",
+          "items": {
+            "$ref": "#/$defs/ModelLineItem"
+          },
+          "title": "Line Items",
+          "type": "array"
+        },
+        "place_of_supply": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw place of supply string.",
+          "title": "Place Of Supply"
+        },
+        "recipient": {
+          "$ref": "#/$defs/ModelParty",
+          "description": "Raw buyer party extraction."
+        },
+        "references": {
+          "description": "Raw referenced PO or challan strings.",
+          "items": {
+            "description": "Unprocessed raw text as extracted directly by the model.",
+            "type": "string"
+          },
+          "title": "References",
+          "type": "array"
+        },
+        "reverse_charge": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw reverse charge indicator string.",
+          "title": "Reverse Charge"
+        },
+        "totals": {
+          "$ref": "#/$defs/ModelTotals",
+          "description": "Raw document totals extraction."
+        }
+      },
+      "required": [
+        "issuer",
+        "recipient",
+        "document_number",
+        "document_date",
+        "totals"
+      ],
+      "title": "ModelSupplierInvoice",
+      "type": "object"
+    },
+    "ModelTaxComponent": {
+      "additionalProperties": false,
+      "description": "Untrusted raw line-level tax component.",
+      "properties": {
+        "amount": {
+          "description": "Raw tax amount string.",
+          "title": "Amount",
+          "type": "string"
+        },
+        "cited_block_ids": {
+          "description": "Source block IDs citing this tax component.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cited Block Ids",
+          "type": "array"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw tax rate string (e.g. '9%') if extracted.",
+          "title": "Rate"
+        },
+        "tax_type": {
+          "description": "Raw tax type string (e.g. 'CGST', 'SGST').",
+          "title": "Tax Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tax_type",
+        "amount"
+      ],
+      "title": "ModelTaxComponent",
+      "type": "object"
+    },
+    "ModelTotals": {
+      "additionalProperties": false,
+      "description": "Untrusted raw totals extracted from invoice.",
+      "properties": {
+        "cited_block_ids": {
+          "description": "Source block IDs citing document totals.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Cited Block Ids",
+          "type": "array"
+        },
+        "discount_total": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw document-level discount string.",
+          "title": "Discount Total"
+        },
+        "grand_total": {
+          "description": "Raw grand total amount string.",
+          "title": "Grand Total",
+          "type": "string"
+        },
+        "other_charges_total": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw freight or ancillary charges string.",
+          "title": "Other Charges Total"
+        },
+        "round_off": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw round-off amount string.",
+          "title": "Round Off"
+        },
+        "subtotal": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw subtotal amount string.",
+          "title": "Subtotal"
+        },
+        "tax_total": {
+          "anyOf": [
+            {
+              "description": "Unprocessed raw text as extracted directly by the model.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Raw total tax amount string.",
+          "title": "Tax Total"
+        }
+      },
+      "required": [
+        "grand_total"
+      ],
+      "title": "ModelTotals",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Top-level untrusted extraction output produced directly by model inference.\n\nConforms strictly to ADR-010 \u00a71: contains raw text only, no system-owned keys,\nand extra=forbid to reject any unexpected or authoritative data.",
+  "properties": {
+    "cited_block_ids": {
+      "description": "Top-level block IDs referenced by the model.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Cited Block Ids",
+      "type": "array"
+    },
+    "document_type_hint": {
+      "anyOf": [
+        {
+          "description": "Unprocessed raw text as extracted directly by the model.",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Model-suggested document classification hint.",
+      "title": "Document Type Hint"
+    },
+    "invoice": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ModelSupplierInvoice"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Extracted supplier invoice raw details if classified as an invoice."
+    }
+  },
+  "title": "ModelOutput",
+  "type": "object"
+}

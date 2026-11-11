@@ -324,22 +324,22 @@ def test_rfc8785_hash_determinism_and_sensitivity() -> None:
 
 
 def test_exported_schemas_are_up_to_date_with_no_drift(tmp_path: Path) -> None:
-    """Verify schemas/canonical matches current models with zero drift."""
-    committed_dir = Path(__file__).resolve().parents[3] / "schemas" / "canonical"
-    assert committed_dir.exists(), "schemas/canonical directory missing"
+    """Verify schemas directory matches current models with zero drift."""
+    committed_root = Path(__file__).resolve().parents[3] / "schemas"
+    assert committed_root.exists(), "schemas directory missing"
 
     # Export to temp directory
     exported_files = export_all_schemas(target_dir=tmp_path)
-    generated_names = {f.name for f in exported_files}
-    committed_names = {f.name for f in committed_dir.glob("*.json")}
+    generated_rel_paths = {f.relative_to(tmp_path) for f in exported_files}
+    committed_rel_paths = {f.relative_to(committed_root) for f in committed_root.glob("*/*.json")}
 
-    assert generated_names == committed_names, (
-        f"Schema file set mismatch: extra={committed_names - generated_names}, missing={generated_names - committed_names}"
+    assert generated_rel_paths == committed_rel_paths, (
+        f"Schema file set mismatch: extra={committed_rel_paths - generated_rel_paths}, missing={generated_rel_paths - committed_rel_paths}"
     )
 
-    for name in generated_names:
-        generated_content = (tmp_path / "canonical" / name).read_text(encoding="utf-8")
-        committed_content = (committed_dir / name).read_text(encoding="utf-8")
+    for rel_path in generated_rel_paths:
+        generated_content = (tmp_path / rel_path).read_text(encoding="utf-8")
+        committed_content = (committed_root / rel_path).read_text(encoding="utf-8")
         assert generated_content == committed_content, (
-            f"Schema drift detected in schemas/canonical/{name}"
+            f"Schema drift detected in schemas/{rel_path}"
         )
