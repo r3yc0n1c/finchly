@@ -1,0 +1,52 @@
+{
+  "description": "Physical quantity with raw and canonical unit representations.\n\nSupports primary quantity and optional secondary quantity.",
+  "properties": {
+    "secondary_unit": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Secondary Unit"
+    },
+    "secondary_value": {
+      "anyOf": [
+        {
+          "description": "Decimal represented as a string to guarantee exact financial precision.",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Secondary Value"
+    },
+    "unit_canonical": {
+      "description": "Canonical unit identifier from registry.",
+      "title": "Unit Canonical",
+      "type": "string"
+    },
+    "unit_raw": {
+      "description": "Unit string exactly as written on the document.",
+      "title": "Unit Raw",
+      "type": "string"
+    },
+    "value": {
+      "description": "Decimal represented as a string to guarantee exact financial precision.",
+      "title": "Value",
+      "type": "string"
+    }
+  },
+  "required": [
+    "value",
+    "unit_raw",
+    "unit_canonical"
+  ],
+  "title": "Quantity",
+  "type": "object"
+}
