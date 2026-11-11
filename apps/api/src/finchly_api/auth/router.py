@@ -1,5 +1,6 @@
 """Authentication and API key management routes."""
 
+import asyncio
 import json
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -18,7 +19,7 @@ from finchly_api.auth.models import (
     LoginResponse,
     RevokeApiKeyResponse,
 )
-from finchly_api.auth.password import verify_password
+from finchly_api.auth.password import DUMMY_ARGON2_HASH, verify_password
 from finchly_api.auth.rate_limit import is_account_locked, record_login_attempt
 from finchly_api.auth.sessions import (
     DEFAULT_SESSION_TTL_HOURS,
@@ -27,6 +28,7 @@ from finchly_api.auth.sessions import (
     generate_csrf_token,
     generate_session_id,
 )
+from finchly_api.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -52,17 +54,27 @@ async def login(
             detail="Account temporarily locked due to excessive failed login attempts. Try again in 15 minutes.",
         )
 
-    # 2. Lookup user and verify Argon2id password
+    # 2. Lookup user and verify Argon2id password (constant-time check to prevent timing side-channels)
     user_row = await conn.fetchrow(
         "SELECT id, email, password_hash FROM users WHERE email = $1",
         login_data.email.lower().strip(),
     )
 
-    if not user_row or not verify_password(user_row["password_hash"], login_data.password):
+    if user_row:
+        hash_to_check = user_row["password_hash"]
+        user_exists = True
+    else:
+        hash_to_check = DUMMY_ARGON2_HASH
+        user_exists = False
+
+    # Offload CPU-bound Argon2id verification to worker thread
+    is_valid = await asyncio.to_thread(verify_password, hash_to_check, login_data.password)
+
+    if not (user_exists and is_valid):
         await record_login_attempt(conn, login_data.email, client_ip, success=False)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password.",
+            detail="INVALID_CREDENTIALS: Invalid email or password.",
         )
 
     # 3. Successful login - record and find user's tenant
@@ -96,11 +108,12 @@ async def login(
     )
 
     # 5. Set HttpOnly, SameSite=Lax session cookie
+    is_secure = settings.environment not in ("development", "test")
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=session_id,
         httponly=True,
-        secure=False,  # Set to True in HTTPS production environments
+        secure=is_secure,
         samesite="lax",
         max_age=DEFAULT_SESSION_TTL_HOURS * 3600,
     )
@@ -160,6 +173,12 @@ async def create_api_key(
     conn: asyncpg.Connection = Depends(get_db_connection),
 ) -> ApiKeyResponse:
     """Issue a new scoped API key. Returns the plaintext secret exactly once."""
+    if not (auth.has_scope("api_keys:manage") or auth.role in ("tenant_admin", "admin")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="INSUFFICIENT_SCOPE: Requires 'api_keys:manage' scope or tenant_admin role to create API keys.",
+        )
+
     full_key, prefix, key_hash = generate_api_key()
 
     expires_at = None
@@ -216,6 +235,12 @@ async def revoke_api_key(
     conn: asyncpg.Connection = Depends(get_db_connection),
 ) -> RevokeApiKeyResponse:
     """Revoke an API key immediately so it can no longer be used."""
+    if not (auth.has_scope("api_keys:manage") or auth.role in ("tenant_admin", "admin")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="INSUFFICIENT_SCOPE: Requires 'api_keys:manage' scope or tenant_admin role to revoke API keys.",
+        )
+
     now = datetime.now(UTC)
     res = await conn.execute(
         """

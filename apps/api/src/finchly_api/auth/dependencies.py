@@ -33,6 +33,7 @@ async def get_current_auth(
     - Opaque API key verification with SHA-256 hash lookup and expiry/revocation checks.
     - Server-side session verification with expiry check.
     - CSRF protection for session-based state-changing requests (POST, PUT, PATCH, DELETE).
+    - Standardized error codes from Finchly error catalogue.
     """
     # 1. Bearer API Key Authentication
     if authorization and authorization.startswith("Bearer "):
@@ -42,7 +43,7 @@ async def get_current_auth(
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid API key format.",
+                detail="INVALID_API_KEY: Invalid API key format.",
                 headers={"WWW-Authenticate": "Bearer"},
             ) from None
 
@@ -60,21 +61,21 @@ async def get_current_auth(
         if not row:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid or unknown API key.",
+                detail="INVALID_API_KEY: Invalid or unknown API key.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
         if row["revoked_at"] is not None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API key has been revoked.",
+                detail="API_KEY_REVOKED: API key has been revoked.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
         if row["expires_at"] is not None and row["expires_at"] <= datetime.now(UTC):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="API key has expired.",
+                detail="API_KEY_EXPIRED: API key has expired.",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
@@ -109,14 +110,14 @@ async def get_current_auth(
         if not row:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Session invalid or expired.",
+                detail="SESSION_EXPIRED: Session invalid or expired.",
             )
 
         if row["expires_at"] <= datetime.now(UTC):
             await conn.execute("DELETE FROM sessions WHERE id = $1;", session_cookie)
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Session has expired.",
+                detail="SESSION_EXPIRED: Session has expired.",
             )
 
         # Enforce CSRF token check on state-changing browser requests
@@ -128,7 +129,7 @@ async def get_current_auth(
         ) and (not csrf_token_header or csrf_token_header != row["csrf_token"]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="CSRF validation failed: missing or invalid X-CSRF-Token header.",
+                detail="CSRF_INVALID: CSRF validation failed: missing or invalid X-CSRF-Token header.",
             )
 
         return AuthContext(
@@ -142,7 +143,7 @@ async def get_current_auth(
     # 3. Unauthenticated request
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authentication required. Provide a valid Bearer API key or session cookie.",
+        detail="AUTHENTICATION_REQUIRED: Authentication required. Provide a valid Bearer API key or session cookie.",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -154,7 +155,7 @@ def require_scope(required_scope: str) -> Callable[[AuthContext], AuthContext]:
         if not auth.has_scope(required_scope):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions: requires scope '{required_scope}'.",
+                detail=f"INSUFFICIENT_SCOPE: Requires scope '{required_scope}'.",
             )
         return auth
 

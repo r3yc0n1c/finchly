@@ -1,7 +1,7 @@
 """Finchly API entrypoint and application factory."""
 
 from collections.abc import AsyncGenerator
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, FastAPI
 
@@ -14,10 +14,11 @@ from finchly_domain.errors import ERROR_CATALOGUE, ErrorDetail
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage application lifecycle resources."""
-    with suppress(Exception):
-        await init_db_pool()
-    yield
-    await close_db_pool()
+    await init_db_pool()
+    try:
+        yield
+    finally:
+        await close_db_pool()
 
 
 app = FastAPI(

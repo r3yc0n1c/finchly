@@ -93,7 +93,8 @@
                 "type": "null"
               }
             ],
-            "description": "Optional validity window in days",
+            "default": 90,
+            "description": "Validity window in days (default: 90 days)",
             "title": "Expires In Days"
           },
           "name": {
@@ -103,14 +104,18 @@
             "type": "string"
           },
           "scopes": {
-            "description": "Authorized scopes",
+            "description": "Explicit authorized scopes (e.g. ['documents:read'])",
             "items": {
               "type": "string"
             },
+            "minItems": 1,
             "title": "Scopes",
             "type": "array"
           }
         },
+        "required": [
+          "scopes"
+        ],
         "title": "CreateApiKeyRequest",
         "type": "object"
       },

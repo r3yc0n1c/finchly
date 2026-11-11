@@ -44,9 +44,11 @@ class CreateApiKeyRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(default="", description="Descriptive label for this API key")
-    scopes: list[str] = Field(default_factory=lambda: ["*"], description="Authorized scopes")
+    scopes: list[str] = Field(
+        ..., min_length=1, description="Explicit authorized scopes (e.g. ['documents:read'])"
+    )
     expires_in_days: int | None = Field(
-        default=None, ge=1, le=365, description="Optional validity window in days"
+        default=90, ge=1, le=365, description="Validity window in days (default: 90 days)"
     )
 
 

@@ -204,7 +204,7 @@ async def test_csrf_rejection_and_acceptance(
         client.cookies.set(SESSION_COOKIE_NAME, session_id)
         post_no_csrf = await client.post(
             "/api/v1/auth/api-keys",
-            json={"name": "test-key"},
+            json={"name": "test-key", "scopes": ["documents:read"]},
         )
         assert post_no_csrf.status_code == 403
         assert "CSRF validation failed" in post_no_csrf.json()["detail"]
@@ -213,7 +213,7 @@ async def test_csrf_rejection_and_acceptance(
         post_bad_csrf = await client.post(
             "/api/v1/auth/api-keys",
             headers={"X-CSRF-Token": "invalid_token_12345"},
-            json={"name": "test-key"},
+            json={"name": "test-key", "scopes": ["documents:read"]},
         )
         assert post_bad_csrf.status_code == 403
 
@@ -221,7 +221,7 @@ async def test_csrf_rejection_and_acceptance(
         post_good_csrf = await client.post(
             "/api/v1/auth/api-keys",
             headers={"X-CSRF-Token": csrf_token},
-            json={"name": "valid-key"},
+            json={"name": "valid-key", "scopes": ["documents:read"]},
         )
         assert post_good_csrf.status_code == 201
         assert post_good_csrf.json()["name"] == "valid-key"
@@ -339,7 +339,23 @@ async def test_api_key_scope_and_revocation(pg_conn: asyncpg.Connection, overrid
         assert me_resp.json()["auth_type"] == "api_key"
         assert me_resp.json()["scopes"] == ["documents:read"]
 
-        # Test revocation
+        # Restricted API key cannot manage (create or revoke) API keys -> 403 Forbidden
+        attempt_create = await client.post(
+            "/api/v1/auth/api-keys",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"name": "escalation-key", "scopes": ["*"]},
+        )
+        assert attempt_create.status_code == 403
+        assert "INSUFFICIENT_SCOPE" in attempt_create.json()["detail"]
+
+        attempt_revoke = await client.post(
+            f"/api/v1/auth/api-keys/{key_id}/revoke",
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
+        assert attempt_revoke.status_code == 403
+        assert "INSUFFICIENT_SCOPE" in attempt_revoke.json()["detail"]
+
+        # Revocation by authorized tenant_admin session succeeds
         revoke_resp = await client.post(
             f"/api/v1/auth/api-keys/{key_id}/revoke",
             headers={"X-CSRF-Token": csrf_token},

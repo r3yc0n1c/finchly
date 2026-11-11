@@ -1,6 +1,11 @@
-"""Login rate limiting and lockout backoff tracking per ADR-009 §1 and SEC-001."""
+"""Login rate limiting and lockout backoff tracking per ADR-009 §1 and SEC-001.
 
-from datetime import UTC, datetime, timedelta
+Retention policy (AGENTS.md §16):
+Authentication attempt audit records in `login_attempts` serve short-term lockout
+enforcement and security event tracing. Records older than 15 minutes have passed
+the lockout sliding window, and historical records are retained for 30 days under
+security audit log retention before being permanently purged by scheduled maintenance.
+"""
 
 import asyncpg
 
@@ -9,18 +14,19 @@ LOCKOUT_WINDOW_MINUTES = 15
 
 
 async def is_account_locked(conn: asyncpg.Connection, email: str) -> bool:
-    """Check if an account is locked due to >= 5 failed login attempts in the past 15 minutes."""
-    cutoff = datetime.now(UTC) - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    """Check if an account is locked due to >= 5 failed login attempts in the past 15 minutes.
+
+    Evaluated using database server time to avoid clock drift between application nodes.
+    """
     failed_count = await conn.fetchval(
-        """
+        f"""
         SELECT COUNT(*)
         FROM login_attempts
         WHERE email = $1
           AND success = false
-          AND attempted_at >= $2
+          AND attempted_at >= (now() - INTERVAL '{LOCKOUT_WINDOW_MINUTES} minutes')
         """,
         email.lower().strip(),
-        cutoff,
     )
     return (failed_count or 0) >= MAX_FAILED_LOGIN_ATTEMPTS
 
