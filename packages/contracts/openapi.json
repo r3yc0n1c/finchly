@@ -1,0 +1,175 @@
+{
+  "components": {
+    "schemas": {
+      "ErrorCode": {
+        "description": "Stable domain error codes for Finchly.",
+        "enum": [
+          "UPLOAD_TOO_LARGE",
+          "UNSUPPORTED_FILE",
+          "ENCRYPTED_PDF",
+          "DUPLICATE_DOCUMENT",
+          "EXTRACTION_INVALID",
+          "EVIDENCE_NOT_FOUND",
+          "VALIDATION_FAILED",
+          "REVIEW_REQUIRED",
+          "APPROVAL_STALE",
+          "ERP_CONNECTION_FAILED",
+          "ERP_OUTCOME_UNKNOWN",
+          "POSTING_DUPLICATE",
+          "MAPPING_MISSING",
+          "TENANT_ACCESS_DENIED"
+        ],
+        "title": "ErrorCode",
+        "type": "string"
+      },
+      "ErrorDetail": {
+        "description": "Metadata describing a cataloged error.",
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "http_status": {
+            "title": "Http Status",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "recovery_suggestion": {
+            "title": "Recovery Suggestion",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "http_status",
+          "category",
+          "message",
+          "retryable",
+          "recovery_suggestion"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Finchly control plane API for auditable business document processing.",
+    "title": "Finchly API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/error-catalogue": {
+      "get": {
+        "description": "Expose the canonical catalogue of system error codes.",
+        "operationId": "get_error_catalogue_api_v1_error_catalogue_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/ErrorDetail"
+                  },
+                  "title": "Response Get Error Catalogue Api V1 Error Catalogue Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Cataloged system error codes",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/api/v1/info": {
+      "get": {
+        "description": "Retrieve Finchly service metadata.",
+        "operationId": "get_system_info_api_v1_info_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Get System Info Api V1 Info Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "System metadata",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/healthz": {
+      "get": {
+        "description": "Returns 200 when the process is alive.",
+        "operationId": "healthz_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Healthz Healthz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/readyz": {
+      "get": {
+        "description": "Returns 200 when all dependencies (Postgres, NATS, MinIO) are reachable, 503 otherwise.",
+        "operationId": "readyz_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Readyz Readyz Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness probe",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}
