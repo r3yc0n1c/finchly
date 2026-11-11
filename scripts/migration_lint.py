@@ -113,10 +113,18 @@ def lint_migration_file(file_path: Path) -> list[str]:
         v = re.escape(var_name)
 
         has_loop_enable = bool(
-            re.search(rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY", loop_segment, re.IGNORECASE)
+            re.search(
+                rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY",
+                loop_segment,
+                re.IGNORECASE,
+            )
         )
         has_loop_force = bool(
-            re.search(rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+FORCE\s+ROW\s+LEVEL\s+SECURITY", loop_segment, re.IGNORECASE)
+            re.search(
+                rf"\bALTER\s+TABLE\s+\{{{v}\}}\s+FORCE\s+ROW\s+LEVEL\s+SECURITY",
+                loop_segment,
+                re.IGNORECASE,
+            )
         )
         has_loop_policy = bool(
             re.search(
@@ -146,7 +154,9 @@ def lint_migration_file(file_path: Path) -> list[str]:
         # 4c. Check literal statements
         esc = re.escape(table_name)
         enable_rls_regex = rf"\bALTER\s+TABLE\s+{esc}\b\s+ENABLE\s+ROW\s+LEVEL\s+SECURITY"
-        has_enable_rls = is_loop_covered or bool(re.search(enable_rls_regex, content, re.IGNORECASE))
+        has_enable_rls = is_loop_covered or bool(
+            re.search(enable_rls_regex, content, re.IGNORECASE)
+        )
         if not has_enable_rls:
             errors.append(
                 f"{file_path.name}: Table '{table_name}' missing 'ALTER TABLE {table_name} ENABLE ROW LEVEL SECURITY;'."

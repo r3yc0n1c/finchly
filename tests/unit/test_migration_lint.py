@@ -148,7 +148,10 @@ def upgrade():
         encoding="utf-8",
     )
     errors = lint_migration_file(omitted_migration)
-    assert any("Table 'invoices' missing 'ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;'" in err for err in errors)
+    assert any(
+        "Table 'invoices' missing 'ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;'" in err
+        for err in errors
+    )
 
 
 def test_missing_create_policy_fails(tmp_path: Path) -> None:
@@ -187,7 +190,11 @@ def upgrade():
         encoding="utf-8",
     )
     errors = lint_migration_file(prefix_migration)
-    assert any("Table 'documents_archive' missing 'ALTER TABLE documents_archive ENABLE ROW LEVEL SECURITY;'" in err for err in errors)
+    assert any(
+        "Table 'documents_archive' missing 'ALTER TABLE documents_archive ENABLE ROW LEVEL SECURITY;'"
+        in err
+        for err in errors
+    )
 
 
 def test_main_missing_dir_returns_1(tmp_path: Path) -> None:

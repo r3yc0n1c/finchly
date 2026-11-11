@@ -192,7 +192,9 @@ def upgrade() -> None:
         """
     )
     op.execute("GRANT USAGE ON SCHEMA public TO finchly_app;")
-    op.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO finchly_app;")
+    op.execute(
+        "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO finchly_app;"
+    )
     op.execute(
         "ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO finchly_app;"
     )
