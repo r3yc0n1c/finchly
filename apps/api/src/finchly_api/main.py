@@ -1,9 +1,25 @@
 """Finchly API entrypoint and application factory."""
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
+
 from fastapi import APIRouter, FastAPI
 
+from finchly_api.auth import auth_router
+from finchly_api.db import close_db_pool, init_db_pool
 from finchly_api.health import router as health_router
 from finchly_domain.errors import ERROR_CATALOGUE, ErrorDetail
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None, None]:
+    """Manage application lifecycle resources."""
+    await init_db_pool()
+    try:
+        yield
+    finally:
+        await close_db_pool()
+
 
 app = FastAPI(
     title="Finchly API",
@@ -12,6 +28,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/api/v1/openapi.json",
+    lifespan=lifespan,
 )
 
 # Root level health probes (K8s / Compose standard)
@@ -19,6 +36,7 @@ app.include_router(health_router)
 
 # Base API v1 router
 api_v1_router = APIRouter(prefix="/api/v1")
+api_v1_router.include_router(auth_router)
 
 
 @api_v1_router.get("/info", tags=["system"], summary="System metadata")
