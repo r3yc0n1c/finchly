@@ -8,7 +8,7 @@ from fastapi import Depends
 from finchly_api.auth.context import AuthContext
 from finchly_api.auth.dependencies import get_current_auth
 from finchly_api.db import get_db_pool
-from finchly_api.tenancy.context import set_current_tenant_id
+from finchly_api.tenancy.context import reset_current_tenant_id, set_current_tenant_id
 
 
 async def get_tenant_db(
@@ -21,13 +21,14 @@ async def get_tenant_db(
     """
     pool = await get_db_pool()
     async with pool.acquire() as conn, conn.transaction():
-        # Set transaction-local tenant context
+        # Set transaction-local tenant context with explicit timeout
         await conn.execute(
             "SELECT set_config('app.tenant_id', $1, true);",
             str(auth.tenant_id),
+            timeout=5.0,
         )
-        set_current_tenant_id(auth.tenant_id)
+        token = set_current_tenant_id(auth.tenant_id)
         try:
             yield conn
         finally:
-            set_current_tenant_id(None)
+            reset_current_tenant_id(token)

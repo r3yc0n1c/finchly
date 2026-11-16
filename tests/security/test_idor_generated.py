@@ -93,6 +93,27 @@ def test_generated_idor_test_fails_on_deliberately_unscoped_route() -> None:
     assert "/api/v1/deliberately-unscoped-leak" in str(exc_info.value)
 
 
+def test_included_router_with_unauthenticated_endpoint_is_rejected() -> None:
+    """Verify that unauthenticated routes on an included APIRouter are detected and rejected."""
+    from fastapi import APIRouter
+
+    test_app = FastAPI()
+    sub_router = APIRouter(prefix="/nested")
+
+    @sub_router.get("/unprotected")
+    async def nested_unprotected() -> dict[str, str]:
+        return {"leak": "nested"}
+
+    test_app.include_router(sub_router)
+
+    unscoped = find_unscoped_routes(test_app)
+    assert ("GET", "/nested/unprotected") in unscoped
+
+    with pytest.raises(AssertionError) as exc_info:
+        verify_routes_are_tenant_scoped(test_app)
+    assert "/nested/unprotected" in str(exc_info.value)
+
+
 @pytest.mark.asyncio
 async def test_worker_tenant_resolution_from_aggregate(pg_conn: asyncpg.Connection) -> None:
     """Verify workers resolve tenant from database aggregate and set RLS context (ADR-009 §4, FIN-009)."""

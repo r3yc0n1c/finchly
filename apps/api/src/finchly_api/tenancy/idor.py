@@ -9,13 +9,14 @@ from fastapi.routing import APIRoute
 from finchly_api.auth.dependencies import get_current_auth
 from finchly_api.tenancy.connection import get_tenant_db
 
-# Explicitly exempt public endpoints (health checks, metadata, login)
+# Explicitly exempt public endpoints (health checks, metadata, login, logout)
 PUBLIC_EXEMPT_ROUTES: set[tuple[str, str]] = {
     ("GET", "/healthz"),
     ("GET", "/readyz"),
     ("GET", "/api/v1/info"),
     ("GET", "/api/v1/error-catalogue"),
     ("POST", "/api/v1/auth/login"),
+    ("POST", "/api/v1/auth/logout"),
     ("GET", "/docs"),
     ("GET", "/redoc"),
     ("GET", "/api/v1/openapi.json"),
@@ -29,7 +30,7 @@ def _dependency_tree_contains(
     if not dependency:
         return False
 
-    call = getattr(dependency, "call", None)
+    call = getattr(dependency, "call", None) or getattr(dependency, "dependency", None)
     if call in target_callables:
         return True
 
@@ -46,16 +47,22 @@ def find_unscoped_routes(app: FastAPI) -> list[tuple[str, str]]:
     A route is considered tenant-scoped if it depends on `get_current_auth`, `get_tenant_db`,
     or a composite dependency containing them.
     """
+    from fastapi.routing import iter_route_contexts
+
     unscoped: list[tuple[str, str]] = []
     target_auth_deps = (get_current_auth, get_tenant_db)
 
-    for route in app.routes:
+    for ctx in iter_route_contexts(app.routes):
+        route = ctx.route
         if not isinstance(route, APIRoute):
             continue
 
+        effective_path = ctx._route_context.path if ctx._route_context else route.path
+        inherited_deps = ctx._route_context.dependencies if ctx._route_context else []
         methods = route.methods or {"GET"}
+
         for method in methods:
-            if (method, route.path) in PUBLIC_EXEMPT_ROUTES:
+            if (method, effective_path) in PUBLIC_EXEMPT_ROUTES:
                 continue
 
             # Check route dependencies
@@ -68,15 +75,22 @@ def find_unscoped_routes(app: FastAPI) -> list[tuple[str, str]]:
                         route_has_auth = True
                         break
 
-            # 2. Check route-level dependencies (from APIRouter / include_router)
+            # 2. Check route-level dependencies (from APIRoute definition)
             if not route_has_auth and hasattr(route, "dependencies"):
                 for route_dep in getattr(route, "dependencies", []):
                     if _dependency_tree_contains(route_dep, target_auth_deps):
                         route_has_auth = True
                         break
 
+            # 3. Check inherited dependencies from enclosing or included routers
             if not route_has_auth:
-                unscoped.append((method, route.path))
+                for inherited_dep in inherited_deps:
+                    if _dependency_tree_contains(inherited_dep, target_auth_deps):
+                        route_has_auth = True
+                        break
+
+            if not route_has_auth:
+                unscoped.append((method, effective_path))
 
     return unscoped
 

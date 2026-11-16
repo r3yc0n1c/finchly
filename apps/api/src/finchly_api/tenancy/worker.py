@@ -6,13 +6,11 @@ from uuid import UUID
 
 import asyncpg
 
-from finchly_api.tenancy.context import set_current_tenant_id
+from finchly_api.tenancy.context import reset_current_tenant_id, set_current_tenant_id
 
+# Tables supported in current Phase D0 schema
 AGGREGATE_TABLE_MAP = {
     "document": ("documents", "id", "tenant_id"),
-    "processing_run": ("processing_runs", "id", "tenant_id"),
-    "validation_run": ("validation_runs", "id", "tenant_id"),
-    "approval": ("approvals", "id", "tenant_id"),
 }
 
 
@@ -29,13 +27,14 @@ async def resolve_aggregate_tenant_id(
     mapping = AGGREGATE_TABLE_MAP.get(aggregate_type.lower())
     if not mapping:
         raise ValueError(
-            f"Unsupported aggregate type '{aggregate_type}'. Known types: {list(AGGREGATE_TABLE_MAP.keys())}"
+            f"Unsupported aggregate type '{aggregate_type}'. Supported types: {list(AGGREGATE_TABLE_MAP.keys())}"
         )
 
     table_name, id_col, tenant_col = mapping
     row = await conn.fetchrow(
         f"SELECT {tenant_col} FROM {table_name} WHERE {id_col} = $1",  # noqa: S608
         aggregate_id,
+        timeout=5.0,
     )
     if not row:
         raise ValueError(
@@ -59,10 +58,10 @@ async def worker_tenant_scope(
         await conn.execute(
             "SELECT set_config('app.tenant_id', $1, true);",
             str(tenant_id),
+            timeout=5.0,
         )
-        set_current_tenant_id(tenant_id)
+        token = set_current_tenant_id(tenant_id)
         try:
             yield tenant_id
         finally:
-            set_current_tenant_id(None)
-            await conn.execute("SELECT set_config('app.tenant_id', '', true);")
+            reset_current_tenant_id(token)
